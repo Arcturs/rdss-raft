@@ -1,0 +1,7 @@
+spring.application.name: rdss-raft
+
+storage:
+  # 8GB
+  maxSizeByte: 8589934592
+  # May be null
+  filePath: "db.txt"

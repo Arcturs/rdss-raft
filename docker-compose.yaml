@@ -1,0 +1,9 @@
+version: '3'
+services:
+  db:
+    image: rdss-db
+    container_name: db
+    build:
+      context: .
+    ports:
+      - "8080:8080"
