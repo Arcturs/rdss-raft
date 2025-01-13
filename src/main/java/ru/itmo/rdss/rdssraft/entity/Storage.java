@@ -44,23 +44,8 @@ public class Storage implements IStorage {
     }
 
     @Override
-    public Map<String, Map<String, String>> getStorage() {
-        Map<String, Map<String, String>> data = new HashMap<>();
-        for(String key : storage.keySet()) {
-            data.put(key, storage.get(key).getDataTable());
-        }
-
-        return data;
-    }
-
-    @Override
     public List<String> getAllTables() {
         return new ArrayList<>(storage.keySet());
-    }
-
-    @Override
-    public StorageConfiguration getConfig() {
-        return null;
     }
 
 }

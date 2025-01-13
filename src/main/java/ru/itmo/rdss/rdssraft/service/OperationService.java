@@ -4,7 +4,6 @@ import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.itmo.rdss.rdssraft.entity.IStorage;
-import ru.itmo.rdss.rdssraft.config.StorageConfiguration;
 
 import java.util.List;
 import java.util.Map;
@@ -16,14 +15,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class OperationService implements IOperationService {
 
     private final IStorage storage;
-    private final IStorageLoader loader;
-    private final StorageConfiguration config;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    public OperationService(IStorage storage, IStorageLoader loader, StorageConfiguration config) {
+    public OperationService(IStorage storage) {
         this.storage = storage;
-        this.loader = loader;
-        this.config = config;
     }
 
     //Table manipulation

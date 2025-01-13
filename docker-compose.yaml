@@ -1,9 +1,49 @@
 version: '3'
 services:
-  db:
+  db-1:
     image: rdss-db
-    container_name: db
+    container_name: db-1
     build:
       context: .
+    ports:
+      - "8081:8080"
+    environment:
+      DB_PORT: 8081
+
+  db-2:
+    image: rdss-db
+    container_name: db-2
+    build:
+      context: .
+    ports:
+      - "8082:8080"
+    environment:
+      DB_PORT: 8082
+
+  db-3:
+    image: rdss-db
+    container_name: db-3
+    build:
+      context: .
+    ports:
+      - "8083:8080"
+    environment:
+      DB_PORT: 8083
+
+  db-4:
+    image: rdss-db
+    container_name: db-4
+    build:
+      context: .
+    ports:
+      - "8084:8080"
+    environment:
+      DB_PORT: 8084
+
+  helper:
+    image: rdss-helper
+    container_name: helper
+    build:
+      context: helper/
     ports:
       - "8080:8080"

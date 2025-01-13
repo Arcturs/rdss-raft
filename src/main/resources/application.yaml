@@ -5,3 +5,4 @@ storage:
   maxSizeByte: 8589934592
   # May be null
   filePath: "db.txt"
+  port: ${DB_PORT:8081}
