@@ -3,6 +3,7 @@ package ru.itmo.rdss.rdssraft.controller;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.itmo.rdss.rdssraft.dictionary.NodeState;
 import ru.itmo.rdss.rdssraft.entity.Node;
+import ru.itmo.rdss.rdssraft.task.NodeTask;
 
 import java.util.UUID;
 
@@ -20,7 +22,10 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
+@ConditionalOnProperty(value = "node.type", havingValue = "node")
 public class NodeController {
+
+    private final NodeTask nodeTask;
 
     @GetMapping("/ping")
     public String ping() {
@@ -44,9 +49,14 @@ public class NodeController {
         var leaderTerm = Integer.parseInt(params[1]);
         if (leaderTerm >= node.getCurrentTerm()) {
             node.setHasVotedFor(null);
-            node.setMasterAddress(params[0]);
-            node.setCurrentTerm(leaderTerm);
             node.setMasterLastUpdated(System.currentTimeMillis());
+            if (!node.getMasterAddress().equals(params[0])) {
+                node.setMasterAddress(params[0]);
+                log.info("Обновление лога ноды из-за смены мастера");
+                nodeTask.replicateLog();
+                node.setMasterLastUpdated(System.currentTimeMillis());
+            }
+            node.setCurrentTerm(leaderTerm);
             node.setState(NodeState.FOLLOWER);
             log.info("Нотификация от лидера {} была прочитана", leader);
             return ResponseEntity.ok("ok");

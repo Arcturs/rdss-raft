@@ -114,7 +114,7 @@ public class NodeTask {
         }
     }
 
-    private void replicateLog() {
+    public void replicateLog() {
         var response = restClient.get()
                 .uri("http://host.docker.internal:8080/api/v1/log/operations")
                 .retrieve()
@@ -240,8 +240,6 @@ public class NodeTask {
                     continue;
                 }
                 var resultResponse = result.getRight();
-                var address = result.getLeft();
-
                 var responseBody = resultResponse.getBody();
                 if (responseBody.contains("ignore")) {
                     log.info("Нода отстает, она переходит в состояние follower");
