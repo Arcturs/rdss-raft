@@ -1,7 +1,7 @@
-package ru.itmo.rdss.rdssraft.helper.storage;
+package ru.itmo.rdss.rdssraft.constants;
 
 import lombok.experimental.UtilityClass;
-import ru.itmo.rdss.rdssraft.helper.entity.Server;
+import ru.itmo.rdss.rdssraft.entity.Server;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -2,25 +2,13 @@ openapi: 3.0.1
 info:
   title: Operation API
   version: 1.0.0
-  description: API для управления операциями с таблицами
+  description: API для управления операциями с хранилищем
 servers:
   - url: /api/v1/operations
 paths:
-  /tables:
+  /:
     get:
-      summary: Получить все таблицы
-      responses:
-        '200':
-          description: Успешное получение таблицы
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-  /table/{table}:
-    get:
-      summary: Получить содержимое таблицы
+      summary: Получить содержимое хранилища
       parameters:
         - name: table
           in: path
@@ -37,46 +25,11 @@ paths:
                 type: array
                 items:
                   type: string
-    post:
-      summary: Создать таблицу
-      parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название новой таблицы
-      responses:
-        '204':
-          description: Таблица успешно создана
-        '409':
-          description: Таблица уже существует
 
-    delete:
-      summary: Удалить таблицу
-      parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
-      responses:
-        '204':
-          description: Таблица успешно удалена
-        '404':
-          description: Таблица не найдена
-
-  /table/{table}/key/{key}:
+  /key/{key}:
     get:
       summary: Получить значение по ключу
       parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
         - name: key
           in: path
           required: true
@@ -99,42 +52,9 @@ paths:
         '404':
           description: Значение не найдено
 
-    post:
-      summary: Добавить значение по ключу
-      parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Ключ для добавления значения
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: string
-      responses:
-        '204':
-          description: Значение успешно добавлено
-        '409':
-          description: Значение уже существует
-
     put:
       summary: Обновить значение по ключу
       parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
         - name: key
           in: path
           required: true
@@ -148,47 +68,18 @@ paths:
             schema:
               type: string
       responses:
-        '204':
+        '200':
           description: Значение успешно обновлено
-        '404':
-          description: Значение не найдено
-
-    patch:
-      summary: Частичное обновление значения по ключу
-      parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Ключ значения
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: string
-      responses:
-        '204':
-          description: Значение успешно обновлено
+          content:
+            application/json:
+              schema:
+                type: string
         '404':
           description: Значение не найдено
 
     delete:
       summary: Удалить значение по ключу
       parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
         - name: key
           in: path
           required: true
@@ -196,21 +87,22 @@ paths:
             type: string
           description: Ключ значения
       responses:
-        '204':
+        '200':
           description: Значение успешно удалено
+          content:
+            application/json:
+              schema:
+                type: string
         '404':
           description: Значение не найдено
 
-  /table/{table}/clear:
+  /clear:
     delete:
-      summary: Очистить таблицу
-      parameters:
-        - name: table
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Название таблицы
+      summary: Очистить хранилище
       responses:
-        '204':
+        '200':
           description: Таблица успешно очищена
+          content:
+            application/json:
+              schema:
+                type: string

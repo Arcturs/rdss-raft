@@ -1,4 +1,4 @@
-package ru.itmo.rdss.rdssraft.helper.entity;
+package ru.itmo.rdss.rdssraft.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

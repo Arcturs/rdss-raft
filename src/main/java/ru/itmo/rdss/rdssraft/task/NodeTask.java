@@ -1,18 +1,23 @@
 package ru.itmo.rdss.rdssraft.task;
 
 import jakarta.annotation.PreDestroy;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import ru.itmo.rdss.rdssraft.entity.Node;
+import ru.itmo.rdss.rdssraft.service.operation.OperationService;
+import ru.itmo.rdss.rdssraft.util.TaskUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -29,20 +34,31 @@ import static ru.itmo.rdss.rdssraft.dictionary.NodeState.LEADER;
 
 @Slf4j
 @Service
-@NoArgsConstructor
+@ConditionalOnProperty(value = "node.type", havingValue = "node")
 public class NodeTask {
 
     private final RestClient restClient = RestClient.create();
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
-    @Value("${storage.port}")
-    private String port;
+    private final String port;
+    private final OperationService operationService;
 
-    public void run() {
+    public NodeTask(OperationService operationService, @Value("${storage.port}") String port) {
+        this.operationService = operationService;
+        this.port = port;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    private void execute() {
+        Executors.newSingleThreadExecutor()
+                .execute(this::run);
+    }
+
+    private void run() {
         var node = Node.getInstance();
         log.info("Запуск ноды с ИД {}", node.getId());
         restClient.post()
-                .uri("http://host.docker.internal:8080/api/v1/server")
+                .uri("http://host.docker.internal:8080/api/v1/cluster/server")
                 .contentType(TEXT_PLAIN)
                 .body(node.getId() + " " + "http://host.docker.internal:" + port)
                 .retrieve()
@@ -67,7 +83,7 @@ public class NodeTask {
         var node = Node.getInstance();
         if (node.getMasterAddress() == null) {
             var leaderAddress = restClient.get()
-                    .uri("http://host.docker.internal:8080/api/v1/leader")
+                    .uri("http://host.docker.internal:8080/api/v1/cluster/leader")
                     .accept(TEXT_PLAIN)
                     .retrieve()
                     .body(String.class);
@@ -77,8 +93,10 @@ public class NodeTask {
                 return;
             }
             node.setMasterAddress(leaderAddress);
+            log.info("Получен мастер: {}. Реплицируем лог кластера", leaderAddress);
+            replicateLog();
+            log.info("Лог реплицирован");
             node.setMasterLastUpdated(System.currentTimeMillis());
-            log.info("Получен мастер: {}", leaderAddress);
             return;
         }
         var electionTimeout = Node.getElectionTimeout();
@@ -96,9 +114,28 @@ public class NodeTask {
         }
     }
 
+    private void replicateLog() {
+        var response = restClient.get()
+                .uri("http://host.docker.internal:8080/api/v1/log/operations")
+                .retrieve()
+                .body(String.class);
+        if (response.equals("{}")) {
+            return;
+        }
+        var clearedResponse = response.replace("{\n", "")
+                .replace("\n}", "")
+                .replace("\t", "");
+        var map = new HashMap<String, String>();
+        Arrays.stream(clearedResponse.split("\n"))
+                .map(it -> it.split(": "))
+                .forEach(it -> map.put(it[0], it[1]));
+        operationService.clear();
+        operationService.putAll(map);
+    }
+
     private void election() {
         log.info("Начало голосования!");
-        var serversAddresses = getServersAddresses();
+        var serversAddresses = TaskUtil.getServersAddresses();
         log.info("Узлы: {}", serversAddresses);
         var votes = 1;
         var node = Node.getInstance();
@@ -145,30 +182,20 @@ public class NodeTask {
             node.setState(LEADER);
             node.setCurrentTerm(node.getCurrentTerm() + 1);
             restClient.post()
-                    .uri("http://host.docker.internal:8080/api/v1/leader")
+                    .uri("http://host.docker.internal:8080/api/v1/cluster/leader")
                     .contentType(TEXT_PLAIN)
                     .body("http://host.docker.internal:" + port)
                     .retrieve()
                     .toBodilessEntity();
-
             log.info("Нода становится лидером!");
+
+            log.info("Репликация из кластера");
+            replicateLog();
         } else {
             node.setState(FOLLOWER);
             log.info("Голоса не собраны, голосование не состоялось");
         }
         node.setHasVotedFor(null);
-    }
-
-    private List<String> getServersAddresses() {
-        var response = restClient.get()
-                .uri("http://host.docker.internal:8080/api/v1/servers")
-                .accept(TEXT_PLAIN)
-                .retrieve()
-                .body(String.class);
-        return Arrays.stream(response.replace("[", "")
-                        .replace("]", "")
-                        .split(", "))
-                .toList();
     }
 
     private <V> List<Callable<Pair<String, ResponseEntity<V>>>> getTasks(
@@ -193,7 +220,7 @@ public class NodeTask {
             log.warn("Произошла ошибка", e);
             return;
         }
-        var serversAddresses = getServersAddresses();
+        var serversAddresses = TaskUtil.getServersAddresses();
         log.info("Узлы: {}", serversAddresses);
         var node = Node.getInstance();
         List<Callable<Pair<String, ResponseEntity<String>>>> tasks = getTasks(
@@ -203,7 +230,7 @@ public class NodeTask {
                         .contentType(TEXT_PLAIN)
                         .body("http://host.docker.internal:%s".formatted(port) + " " + node.getCurrentTerm())
                         .retrieve()
-                        .toBodilessEntity()));
+                        .toEntity(String.class)));
         try {
             List<Future<Pair<String, ResponseEntity<String>>>> results = executor.invokeAll(tasks, 1, SECONDS);
             for (var r : results) {
@@ -215,8 +242,14 @@ public class NodeTask {
                 var resultResponse = result.getRight();
                 var address = result.getLeft();
 
-                if (!resultResponse.getStatusCode().is2xxSuccessful()) {
-                    log.warn("Нода с адресом {} получила ответ, отличающийся от 200", address);
+                var responseBody = resultResponse.getBody();
+                if (responseBody.contains("ignore")) {
+                    log.info("Нода отстает, она переходит в состояние follower");
+                    node.setState(FOLLOWER);
+                    node.setHasVotedFor(null);
+                    node.setCurrentTerm(Integer.parseInt(responseBody.substring(7)));
+                    node.setMasterAddress(null);
+                    return;
                 }
             }
         } catch (InterruptedException | ExecutionException e) {
@@ -235,7 +268,13 @@ public class NodeTask {
 
     @PreDestroy
     private void destroy() {
-        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(30, SECONDS)) {
+                throw new InterruptedException();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
     }
 
 }

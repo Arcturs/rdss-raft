@@ -1,18 +1,20 @@
 package ru.itmo.rdss.rdssraft.util;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
+@Component
+@RequiredArgsConstructor
 public class MemoryUtil {
 
-    private final long maxMemoryUsage;
+    @Value("${storage.maxSizeByte}")
+    private long maxMemoryUsage;
     private final AtomicLong currentMemoryUsage = new AtomicLong(0);
-
-    public MemoryUtil(long maxMemoryUsage) {
-        this.maxMemoryUsage = maxMemoryUsage;
-    }
 
     /**
      * <p>

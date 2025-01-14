@@ -1,5 +1,6 @@
 package ru.itmo.rdss.rdssraft.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import ru.itmo.rdss.rdssraft.entity.Node;
 import java.util.UUID;
 
 @Slf4j
+@Hidden
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
@@ -39,13 +41,20 @@ public class NodeController {
     public ResponseEntity<String> leaderNotification(@RequestBody String leader) {
         var node = Node.getInstance();
         var params = leader.split(" ");
-        node.setHasVotedFor(null);
-        node.setMasterAddress(params[0]);
-        node.setCurrentTerm(Integer.parseInt(params[1]));
-        node.setMasterLastUpdated(System.currentTimeMillis());
-        node.setState(NodeState.FOLLOWER);
-        log.info("Нотификация от лидера {}", leader);
-        return ResponseEntity.ok("ok");
+        var leaderTerm = Integer.parseInt(params[1]);
+        if (leaderTerm >= node.getCurrentTerm()) {
+            node.setHasVotedFor(null);
+            node.setMasterAddress(params[0]);
+            node.setCurrentTerm(leaderTerm);
+            node.setMasterLastUpdated(System.currentTimeMillis());
+            node.setState(NodeState.FOLLOWER);
+            log.info("Нотификация от лидера {} была прочитана", leader);
+            return ResponseEntity.ok("ok");
+        }
+        log.info("Лидер отстает, игнорирование нотификации");
+        return ResponseEntity.ok("ignore-" + node.getCurrentTerm());
     }
+
+
 
 }

@@ -1,8 +1,9 @@
 spring.application.name: rdss-raft
 
+node:
+  type: ${DB_NODE_TYPE:node}
+
 storage:
   # 8GB
   maxSizeByte: 8589934592
-  # May be null
-  filePath: "db.txt"
   port: ${DB_PORT:8081}

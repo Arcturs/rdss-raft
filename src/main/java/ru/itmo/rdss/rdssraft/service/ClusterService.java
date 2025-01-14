@@ -1,20 +1,20 @@
-package ru.itmo.rdss.rdssraft.helper.service;
+package ru.itmo.rdss.rdssraft.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.itmo.rdss.rdssraft.helper.entity.Server;
+import ru.itmo.rdss.rdssraft.constants.ServerStorage;
+import ru.itmo.rdss.rdssraft.entity.Server;
 
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static ru.itmo.rdss.rdssraft.helper.storage.ServerStorage.MASTER_ADDRESS;
-import static ru.itmo.rdss.rdssraft.helper.storage.ServerStorage.SERVERS;
+import static ru.itmo.rdss.rdssraft.constants.ServerStorage.SERVERS;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class HelperService {
+public class ClusterService {
 
     public String getServers() {
         return SERVERS.stream()
@@ -23,11 +23,11 @@ public class HelperService {
     }
 
     public String getLeader() {
-        return MASTER_ADDRESS;
+        return ServerStorage.MASTER_ADDRESS;
     }
 
     public void setLeader(String leader) {
-        MASTER_ADDRESS = leader;
+        ServerStorage.MASTER_ADDRESS = leader;
         log.info("Записан лидер с адресом {}", leader);
         for (var server : SERVERS) {
             if (server.getAddress().equals(leader)) {

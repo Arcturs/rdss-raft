@@ -1,18 +1,20 @@
-package ru.itmo.rdss.rdssraft.helper.scheduler;
+package ru.itmo.rdss.rdssraft.scheduler;
 
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import static org.springframework.http.MediaType.TEXT_PLAIN;
-import static ru.itmo.rdss.rdssraft.helper.storage.ServerStorage.SERVERS;
+import static ru.itmo.rdss.rdssraft.constants.ServerStorage.SERVERS;
 
 @Slf4j
 @Component
 @NoArgsConstructor
-public class HelperScheduler {
+@ConditionalOnProperty(value = "node.type", havingValue = "cluster")
+public class ClusterScheduler {
 
     private static final long MAX_TIME_WITHOUT_UPDATE = 5_000;
 
